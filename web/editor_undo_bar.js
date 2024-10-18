@@ -24,6 +24,14 @@ class EditorUndoBar {
 
   #undoButton;
 
+  static #l10nMessages = Object.freeze({
+    highlight: "pdfjs-editor-undo-bar-message-highlight",
+    freetext: "pdfjs-editor-undo-bar-message-freetext",
+    stamp: "pdfjs-editor-undo-bar-message-stamp",
+    ink: "pdfjs-editor-undo-bar-message-ink",
+    _multiple: "pdfjs-editor-undo-bar-message-multiple",
+  });
+
   constructor({ container, message, undoButton, closeButton }, eventBus) {
     this.#container = container;
     this.#message = message;
@@ -37,22 +45,36 @@ class EditorUndoBar {
     eventBus._on("download", boundHide);
   }
 
-  show(action, type) {
+  show(undoAction, messageData) {
     this.hide();
-    this.#message.setAttribute("data-l10n-args", JSON.stringify({ type }));
-    this.#container.hidden = false;
+
+    if (typeof messageData === "string") {
+      this.#message.setAttribute(
+        "data-l10n-id",
+        EditorUndoBar.#l10nMessages[messageData]
+      );
+    } else {
+      this.#message.setAttribute(
+        "data-l10n-id",
+        EditorUndoBar.#l10nMessages._multiple
+      );
+      this.#message.setAttribute(
+        "data-l10n-args",
+        JSON.stringify({ count: messageData })
+      );
+    }
     this.isOpen = true;
+    this.#container.hidden = false;
 
     this.#controller = new AbortController();
-    const opts = { signal: this.#controller.signal };
 
     this.#undoButton.addEventListener(
       "click",
       () => {
-        action();
+        undoAction();
         this.hide();
       },
-      opts
+      { signal: this.#controller.signal }
     );
     this.#undoButton.focus();
   }

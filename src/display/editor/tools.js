@@ -2008,9 +2008,7 @@ class AnnotationEditorUIManager {
     const cmd = () => {
       this.#editorUndoBar?.show(
         undo,
-        editors.length > 1
-          ? `${editors.length} annotations`
-          : editors[0].editorType
+        editors.length === 1 ? editors[0].editorType : editors.length
       );
       for (const editor of editors) {
         editor.remove();

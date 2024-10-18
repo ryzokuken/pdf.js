@@ -452,9 +452,10 @@ const PDFViewerApplication = {
           )
         : null;
     }
-    const editorUndoBar = (this.editorUndoBar = appConfig.editorUndoBar
-      ? new EditorUndoBar(appConfig.editorUndoBar, eventBus)
-      : null);
+
+    if (appConfig.editorUndoBar) {
+      this.editorUndoBar = new EditorUndoBar(appConfig.editorUndoBar, eventBus);
+    }
 
     const enableHWA = AppOptions.get("enableHWA");
     const pdfViewer = new PDFViewer({
@@ -465,7 +466,7 @@ const PDFViewerApplication = {
       linkService: pdfLinkService,
       downloadManager,
       altTextManager,
-      editorUndoBar,
+      editorUndoBar: this.editorUndoBar,
       findController,
       scriptingManager:
         AppOptions.get("enableScripting") && pdfScriptingManager,
