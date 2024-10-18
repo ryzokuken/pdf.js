@@ -405,7 +405,7 @@ class AnnotationEditorLayer {
         return;
       }
 
-      this.#uiManager._eventBus.dispatch("annotationstart", { source: this });
+      this.#uiManager._editorUndoBar?.hide();
 
       this.#uiManager.showAllEditors(
         "highlight",
