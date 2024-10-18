@@ -365,6 +365,8 @@ class StampEditor extends AnnotationEditor {
       return this.div;
     }
 
+    this._uiManager._eventBus.dispatch("annotationstart", { source: this });
+
     let baseX, baseY;
     if (this.width) {
       baseX = this.x;
