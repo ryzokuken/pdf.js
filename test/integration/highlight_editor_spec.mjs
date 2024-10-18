@@ -2146,7 +2146,7 @@ describe("Highlight Editor", () => {
     });
   });
 
-  fdescribe("Annotation pop-up has the expected behaviour", () => {
+  describe("Annotation pop-up has the expected behaviour", () => {
     let pages;
 
     beforeEach(async () => {
@@ -2240,7 +2240,7 @@ describe("Highlight Editor", () => {
       );
     });
 
-    xit("must check that the popup disappears when a new annotation is created", async () => {
+    it("must check that the popup disappears when a new annotation is created", async () => {
       await Promise.all(
         pages.map(async ([browserName, page]) => {
           await switchToHighlight(page);
@@ -2314,7 +2314,7 @@ describe("Highlight Editor", () => {
       );
     });
 
-    xit("must check that the popup disappears when an option from the 'more' menu is selected", async () => {
+    it("must check that the popup disappears when an option from the 'more' menu is selected", async () => {
       await Promise.all(
         pages.map(async ([browserName, page]) => {
           await switchToHighlight(page);
@@ -2372,7 +2372,7 @@ describe("Highlight Editor", () => {
       );
     });
 
-    xit("must display correct message for multiple highlights", async () => {
+    it("must display correct message for multiple highlights", async () => {
       await Promise.all(
         pages.map(async ([browserName, page]) => {
           await switchToHighlight(page);
@@ -2408,7 +2408,11 @@ describe("Highlight Editor", () => {
             message
           );
 
-          expect(messageText).toContain(`\u200B2 annotations removed\u200B`);
+          // Cleans the message text by removing all non-ASCII characters.
+          // It eliminates any invisible characters such as directional marks
+          // that interfere with string comparisons
+          const cleanMessage = messageText.replaceAll(/\P{ASCII}/gu, "");
+          expect(cleanMessage).toContain(`2 annotations removed`);
         })
       );
     });
