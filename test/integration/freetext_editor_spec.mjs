@@ -3772,5 +3772,47 @@ describe("FreeText Editor", () => {
         })
       );
     });
+
+    it("must check that the popup disappears when a new textbox is created", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToFreeText(page);
+
+          let rect = await getRect(page, ".annotationEditorLayer");
+          const data = "Hello PDF.js World !!";
+          await page.mouse.click(rect.x + 100, rect.y + 100);
+          await page.waitForSelector(getEditorSelector(0), {
+            visible: true,
+          });
+          await page.type(`${getEditorSelector(0)} .internal`, data);
+
+          await page.keyboard.press("Escape");
+          await page.waitForSelector(
+            `${getEditorSelector(0)} .overlay.enabled`
+          );
+          await waitForSerialized(page, 1);
+
+          await page.waitForSelector(`${getEditorSelector(0)} button.delete`);
+          await page.click(`${getEditorSelector(0)} button.delete`);
+          await waitForSerialized(page, 0);
+
+          await page.waitForSelector("#editorUndoBar:not([hidden])");
+          rect = await getRect(page, ".annotationEditorLayer");
+          const newData = "This is a new text box!";
+          await page.mouse.click(rect.x + 150, rect.y + 150);
+          await page.waitForSelector(getEditorSelector(1), {
+            visible: true,
+          });
+          await page.type(`${getEditorSelector(1)} .internal`, newData);
+
+          await page.keyboard.press("Escape");
+          await page.waitForSelector(
+            `${getEditorSelector(1)} .overlay.enabled`
+          );
+          await waitForSerialized(page, 1);
+          await page.waitForSelector("#editorUndoBar", { hidden: true });
+        })
+      );
+    });
   });
 });

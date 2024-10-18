@@ -1347,5 +1347,32 @@ describe("Stamp Editor", () => {
         })
       );
     });
+
+    it("must check that the popup disappears when a new image is inserted", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToStamp(page);
+          const selector = getEditorSelector(0);
+
+          await copyImage(page, "../images/firefox_logo.png", 0);
+          await page.waitForSelector(selector);
+          await waitForSerialized(page, 1);
+
+          await page.waitForSelector(`${getEditorSelector(0)} button.delete`);
+          await page.click(`${getEditorSelector(0)} button.delete`);
+          await waitForSerialized(page, 0);
+
+          await page.waitForSelector("#editorUndoBar:not([hidden])");
+          await page.click("#editorStampAddImage");
+          const newInput = await page.$("#stampEditorFileInput");
+          await newInput.uploadFile(
+            `${path.join(__dirname, "../images/firefox_logo.png")}`
+          );
+          await waitForImage(page, getEditorSelector(1));
+          await waitForSerialized(page, 1);
+          await page.waitForSelector("#editorUndoBar", { hidden: true });
+        })
+      );
+    });
   });
 });
