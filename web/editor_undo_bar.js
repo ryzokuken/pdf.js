@@ -43,6 +43,8 @@ class EditorUndoBar {
     closeButton.addEventListener("click", boundHide);
     eventBus._on("beforeprint", boundHide);
     eventBus._on("download", boundHide);
+    eventBus._on("annotationstart", boundHide);
+    eventBus._on("secondarytoolbaraction", boundHide);
   }
 
   show(undoAction, messageData) {
