@@ -494,9 +494,16 @@ pdfjs-editor-alt-text-settings-show-dialog-button-label = Show alt text editor r
 pdfjs-editor-alt-text-settings-show-dialog-description = Helps you make sure all your images have alt text.
 pdfjs-editor-alt-text-settings-close-button = Close
 
+## "Annotations removed" bar
+
+pdfjs-editor-undo-bar-message-highlight = Highlight removed
+pdfjs-editor-undo-bar-message-freetext = Text removed
+pdfjs-editor-undo-bar-message-ink = Drawing removed
+pdfjs-editor-undo-bar-message-stamp = Image removed
 # Variables:
-#   $type (String) - the type of annotation that was just removed with an optional quantity.
-pdfjs-editor-undo-bar-message = { $type } removed
+#   $count (Number) - the number of removed annotations.
+pdfjs-editor-undo-bar-message-multiple = { $count } annotations removed
+
 pdfjs-editor-undo-bar-undo-button =
     .title = Undo
 pdfjs-editor-undo-bar-undo-button-label = Undo

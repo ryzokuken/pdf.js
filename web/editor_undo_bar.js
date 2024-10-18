@@ -20,14 +20,25 @@ class EditorUndoBar {
 
   isOpen = false;
 
+  #l10n;
+
   #message;
 
   #undoButton;
 
-  constructor({ container, message, undoButton, closeButton }, eventBus) {
+  static #l10nMessages = Object.freeze({
+    highlight: "pdfjs-editor-undo-bar-message-highlight",
+    freetext: "pdfjs-editor-undo-bar-message-freetext",
+    stamp: "pdfjs-editor-undo-bar-message-stamp",
+    ink: "pdfjs-editor-undo-bar-message-ink",
+    __multiple: "pdfjs-editor-undo-bar-message-multiple",
+  });
+
+  constructor({ container, message, undoButton, closeButton }, eventBus, l10n) {
     this.#container = container;
     this.#message = message;
     this.#undoButton = undoButton;
+    this.#l10n = l10n;
 
     // Caveat: we have to pick between registering these everytime the bar is
     // shown and not having the ability to cleanup using AbortController.
@@ -37,22 +48,26 @@ class EditorUndoBar {
     eventBus._on("download", boundHide);
   }
 
-  show(action, type) {
+  async show(undoAction, messageData) {
     this.hide();
-    this.#message.setAttribute("data-l10n-args", JSON.stringify({ type }));
-    this.#container.hidden = false;
     this.isOpen = true;
-
     this.#controller = new AbortController();
-    const opts = { signal: this.#controller.signal };
+
+    this.#message.textContent =
+      typeof messageData === "string"
+        ? await this.#l10n.get(EditorUndoBar.#l10nMessages[messageData])
+        : await this.#l10n.get(EditorUndoBar.#l10nMessages.__multiple, {
+            count: messageData,
+          });
+    this.#container.hidden = false;
 
     this.#undoButton.addEventListener(
       "click",
       () => {
-        action();
+        undoAction();
         this.hide();
       },
-      opts
+      { signal: this.#controller.signal }
     );
     this.#undoButton.focus();
   }
