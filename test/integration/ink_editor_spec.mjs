@@ -453,4 +453,87 @@ describe("Ink Editor", () => {
       );
     });
   });
+
+  describe("Undo annotation popup has the expected behaviour", () => {
+    let pages;
+
+    beforeEach(async () => {
+      pages = await loadAndWait("tracemonkey.pdf", ".annotationEditorLayer");
+    });
+
+    afterEach(async () => {
+      await closePages(pages);
+    });
+
+    it("must check that deleting a drawing can be undone using the undo button", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToInk(page);
+
+          const rect = await getRect(page, ".annotationEditorLayer");
+          const xStart = rect.x + 300;
+          const yStart = rect.y + 300;
+          const clickHandle = await waitForPointerUp(page);
+          await page.mouse.move(xStart, yStart);
+          await page.mouse.down();
+          await page.mouse.move(xStart + 50, yStart + 50);
+          await page.mouse.up();
+          await awaitPromise(clickHandle);
+          await commit(page);
+
+          await page.waitForSelector(getEditorSelector(0));
+          await waitForSerialized(page, 1);
+
+          await page.waitForSelector(`${getEditorSelector(0)} button.delete`);
+          await page.click(`${getEditorSelector(0)} button.delete`);
+          await waitForSerialized(page, 0);
+
+          await page.waitForSelector("#editorUndoBar:not([hidden])");
+          await page.click('button[title="Undo"]');
+          await waitForSerialized(page, 1);
+          await page.waitForSelector(getEditorSelector(0));
+        })
+      );
+    });
+
+    it("Must check annotation popup displays the correct message", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToInk(page);
+
+          const rect = await getRect(page, ".annotationEditorLayer");
+          const xStart = rect.x + 300;
+          const yStart = rect.y + 300;
+          const clickHandle = await waitForPointerUp(page);
+          await page.mouse.move(xStart, yStart);
+          await page.mouse.down();
+          await page.mouse.move(xStart + 50, yStart + 50);
+          await page.mouse.up();
+          await awaitPromise(clickHandle);
+          await commit(page);
+
+          await page.waitForSelector(getEditorSelector(0));
+          await waitForSerialized(page, 1);
+
+          await page.waitForSelector(`${getEditorSelector(0)} button.delete`);
+          await page.click(`${getEditorSelector(0)} button.delete`);
+          await waitForSerialized(page, 0);
+
+          await page.waitForFunction(
+            () =>
+              document
+                .querySelector("#editorUndoBarMessage")
+                .textContent.trim() !== "",
+            { timeout: 1000 }
+          );
+          const message = await page.waitForSelector("#editorUndoBarMessage");
+          const messageText = await page.evaluate(
+            el => el.textContent,
+            message
+          );
+          expect(messageText).toContain("Drawing removed");
+        })
+      );
+    });
+  });
 });

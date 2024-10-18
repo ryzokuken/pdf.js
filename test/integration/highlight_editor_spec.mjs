@@ -2193,6 +2193,29 @@ describe("Highlight Editor", () => {
       );
     });
 
+    it("must check that the popup disappears when the undo button is clicked", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToHighlight(page);
+
+          const rect = await getSpanRectFromText(page, 1, "Abstract");
+          const x = rect.x + rect.width / 2;
+          const y = rect.y + rect.height / 2;
+          await page.mouse.click(x, y, { count: 2, delay: 100 });
+          await page.waitForSelector(getEditorSelector(0));
+          await waitForSerialized(page, 1);
+
+          await page.waitForSelector(`${getEditorSelector(0)} button.delete`);
+          await page.click(`${getEditorSelector(0)} button.delete`);
+          await waitForSerialized(page, 0);
+          await page.waitForSelector("#editorUndoBar:not([hidden])");
+
+          await page.click('button[title="Undo"]');
+          await page.waitForSelector("#editorUndoBar", { hidden: true });
+        })
+      );
+    });
+
     it("must check that the popup disappears when the close button is clicked", async () => {
       await Promise.all(
         pages.map(async ([browserName, page]) => {
@@ -2315,7 +2338,7 @@ describe("Highlight Editor", () => {
       );
     });
 
-    xit("must display the correct message for highlights", async () => {
+    it("must display the correct message for highlights", async () => {
       await Promise.all(
         pages.map(async ([browserName, page]) => {
           await switchToHighlight(page);
@@ -2331,12 +2354,61 @@ describe("Highlight Editor", () => {
           await page.click(`${getEditorSelector(0)} button.delete`);
           await waitForSerialized(page, 0);
 
+          await page.waitForFunction(
+            () =>
+              document
+                .querySelector("#editorUndoBarMessage")
+                .textContent.trim() !== "",
+            { timeout: 1000 }
+          );
+
           const message = await page.waitForSelector("#editorUndoBarMessage");
           const messageText = await page.evaluate(
             el => el.textContent,
             message
           );
           expect(messageText).toContain("Highlight removed");
+        })
+      );
+    });
+
+    xit("must display correct message for multiple highlights", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToHighlight(page);
+
+          let rect = await getSpanRectFromText(page, 1, "Abstract");
+          let x = rect.x + rect.width / 2;
+          let y = rect.y + rect.height / 2;
+          await page.mouse.click(x, y, { count: 2, delay: 100 });
+          await page.waitForSelector(getEditorSelector(0));
+
+          rect = await getSpanRectFromText(page, 1, "Languages");
+          x = rect.x + rect.width / 2;
+          y = rect.y + rect.height / 2;
+          await page.mouse.click(x, y, { count: 2, delay: 100 });
+          await page.waitForSelector(getEditorSelector(1));
+
+          await selectAll(page);
+          await page.waitForSelector(`${getEditorSelector(0)} button.delete`);
+          await page.click(`${getEditorSelector(0)} button.delete`);
+          await waitForSerialized(page, 0);
+
+          await page.waitForFunction(
+            () =>
+              document
+                .querySelector("#editorUndoBarMessage")
+                .textContent.trim() !== "",
+            { timeout: 1000 }
+          );
+
+          const message = await page.waitForSelector("#editorUndoBarMessage");
+          const messageText = await page.evaluate(
+            el => el.textContent,
+            message
+          );
+
+          expect(messageText).toContain(`\u200B2 annotations removed\u200B`);
         })
       );
     });
