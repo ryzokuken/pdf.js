@@ -44,6 +44,11 @@ class EditorUndoBar {
     eventBus._on("beforeprint", boundHide);
     eventBus._on("download", boundHide);
     eventBus._on("secondarytoolbaraction", boundHide);
+    eventBus._on("annotationeditormodechanged", ({ mode }) => {
+      if (mode === AnnotationEditorType.NONE) {
+        this.hide();
+      }
+    })
   }
 
   show(undoAction, messageData) {
