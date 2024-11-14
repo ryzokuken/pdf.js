@@ -66,6 +66,7 @@ import {
 import { LinkTarget, PDFLinkService } from "./pdf_link_service.js";
 import { AltTextManager } from "web-alt_text_manager";
 import { AnnotationEditorParams } from "web-annotation_editor_params";
+import { AutolinkService } from "./autolink_service.js";
 import { CaretBrowsingMode } from "./caret_browsing.js";
 import { DownloadManager } from "web-download_manager";
 import { OverlayManager } from "./overlay_manager.js";
@@ -182,6 +183,7 @@ const PDFViewerApplication = {
   _isCtrlKeyDown: false,
   _caretBrowsing: null,
   _isScrolling: false,
+  autolinkService: null,
 
   // Called once when the document is loaded.
   async initialize(appConfig) {
@@ -450,6 +452,8 @@ const PDFViewerApplication = {
           )
         : null;
     }
+
+    this.autolinkService = new AutolinkService(eventBus);
 
     const enableHWA = AppOptions.get("enableHWA");
     const pdfViewer = new PDFViewer({

@@ -51,6 +51,7 @@ import { TextAccessibilityManager } from "./text_accessibility.js";
 import { TextHighlighter } from "./text_highlighter.js";
 import { TextLayerBuilder } from "./text_layer_builder.js";
 import { XfaLayerBuilder } from "./xfa_layer_builder.js";
+import { concatTextContent } from "./pdf_find_controller.js";
 
 /**
  * @typedef {Object} PDFPageViewOptions
@@ -145,6 +146,8 @@ class PDFPageView {
   };
 
   #viewportMap = new WeakMap();
+
+  #linkAnnotations = [];
 
   #layers = [null, null, null, null];
 
@@ -398,7 +401,8 @@ class PDFPageView {
       await this.annotationLayer.render(
         this.viewport,
         { structTreeLayer: this.structTreeLayer },
-        "display"
+        "display",
+        this.#linkAnnotations
       );
     } catch (ex) {
       console.error(`#renderAnnotationLayer: "${ex}".`);
@@ -1196,6 +1200,26 @@ class PDFPageView {
     return directDrawing && initialOptionalContent && regularAnnotations
       ? this.canvas
       : null;
+  }
+
+  #addLinkAnnotation(url) {
+    this.#linkAnnotations.push({
+      subtype: "Link",
+      unsafeUrl: url,
+      url,
+    });
+  }
+
+  processLinks() {
+    this.pdfPage.getTextContent().then(content => {
+      const text = concatTextContent(content);
+      const urlRegex = /\b(?:https?:\/\/|mailto:|www.)(?:[[\S--\[]--\p{P}]|\/|[\p{P}--\[]+[[\S--\[]--\p{P}])+/gmv;
+      const matches = text.matchAll(urlRegex);
+      if (matches) {
+        matches.forEach(match => this.#addLinkAnnotation(match[0]));
+        this.#renderAnnotationEditorLayer();
+      }
+    });
   }
 }
 
