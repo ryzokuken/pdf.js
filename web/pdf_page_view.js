@@ -1202,11 +1202,29 @@ class PDFPageView {
       : null;
   }
 
-  #addLinkAnnotation(url) {
+  #addLinkAnnotation(url, index) {
+    // TODO refactor out the logic for a single match from this function
+    const convertedMatch = this._textHighlighter._convertMatches([index], [url.length])[0];
+    const startRect = this._textHighlighter.textDivs[convertedMatch.begin.divIdx].getBoundingClientRect();
+    // const endDiv = this._textHighlighter.textDivs[convertedMatch.end.divIdx];
     this.#linkAnnotations.push({
+      annotationType: 2,
       subtype: "Link",
       unsafeUrl: url,
       url,
+      // FIXME The rect is wrong atm, it should be calculated better
+      rect: [startRect.top, startRect.left, startRect.bottom, startRect.right],
+      // NOTE everything from here on is arbitrary
+      borderStyle: {
+        width: 0,
+        rawWidth: 1,
+        style: 1,
+        dashArray: [
+          3
+        ],
+        horizontalCornerRadius: 0,
+        verticalCornerRadius: 0
+      }
     });
   }
 
@@ -1216,8 +1234,9 @@ class PDFPageView {
       const urlRegex = /\b(?:https?:\/\/|mailto:|www.)(?:[[\S--\[]--\p{P}]|\/|[\p{P}--\[]+[[\S--\[]--\p{P}])+/gmv;
       const matches = text.matchAll(urlRegex);
       if (matches) {
-        matches.forEach(match => this.#addLinkAnnotation(match[0]));
-        this.#renderAnnotationEditorLayer();
+        matches.forEach(match => this.#addLinkAnnotation(match[0], match.index));
+        // there should be a more efficient way to do this
+        this.#renderAnnotationLayer();
       }
     });
   }
