@@ -1205,15 +1205,41 @@ class PDFPageView {
   #addLinkAnnotation(url, index) {
     // TODO refactor out the logic for a single match from this function
     const convertedMatch = this._textHighlighter._convertMatches([index], [url.length])[0];
-    const startRect = this._textHighlighter.textDivs[convertedMatch.begin.divIdx].getBoundingClientRect();
+    const range = new Range();
+    range.setStart(
+      this._textHighlighter.textDivs[convertedMatch.begin.divIdx].firstChild,
+      convertedMatch.begin.offset
+    );
+    range.setEnd(
+      this._textHighlighter.textDivs[convertedMatch.end.divIdx].firstChild,
+      convertedMatch.end.offset
+    );
+    // const startDiv = this._textHighlighter.textDivs[convertedMatch.begin.divIdx];
+    // const startRect = startDiv.getBoundingClientRect();
+    // const {x, bottom, right, y} = startRect;
+    // this.viewport.rawDims();
+
+    const { left, bottom, right, top } = range.getBoundingClientRect();
+    const yoffset = this.pdfPage.view[1] + this.pdfPage.view[3];
+    const xoffset = this.pdfPage.view[0] + this.pdfPage.view[2];
+    // const rect = [left, this.pdfPage.view[1] - bottom + this.pdfPage.view[3], right, this.pdfPage.view[1] - top + this.pdfPage.view[3]]
+    const rect = [left, yoffset - bottom, yoffset - top, right];
+    // console.log(startDiv, rect);
     // const endDiv = this._textHighlighter.textDivs[convertedMatch.end.divIdx];
     this.#linkAnnotations.push({
-      annotationType: 2,
-      subtype: "Link",
       unsafeUrl: url,
       url,
       // FIXME The rect is wrong atm, it should be calculated better
-      rect: [startRect.top, startRect.left, startRect.bottom, startRect.right],
+      rect,
+      // NOTE boilerplate-y
+      annotationType: 2,
+      annotationFlags: 4,
+      subtype: "Link",
+      noHTML: false,
+      isEditable: false,
+      hasApperance: false,
+      modificationDate: null,
+      structParent: 2,
       // NOTE everything from here on is arbitrary
       borderStyle: {
         width: 0,
@@ -1234,6 +1260,7 @@ class PDFPageView {
       const urlRegex = /\b(?:https?:\/\/|mailto:|www.)(?:[[\S--\[]--\p{P}]|\/|[\p{P}--\[]+[[\S--\[]--\p{P}])+/gmv;
       const matches = text.matchAll(urlRegex);
       if (matches) {
+        this.#linkAnnotations = [];
         matches.forEach(match => this.#addLinkAnnotation(match[0], match.index));
         // there should be a more efficient way to do this
         this.#renderAnnotationLayer();
