@@ -31,6 +31,7 @@ import {
   RenderingCancelledException,
   setLayerDimensions,
   shadow,
+  Util,
 } from "pdfjs-lib";
 import {
   approximateFraction,
@@ -51,7 +52,7 @@ import { TextAccessibilityManager } from "./text_accessibility.js";
 import { TextHighlighter } from "./text_highlighter.js";
 import { TextLayerBuilder } from "./text_layer_builder.js";
 import { XfaLayerBuilder } from "./xfa_layer_builder.js";
-import { concatTextContent } from "./pdf_find_controller.js";
+import { normalizedTextContent, getOriginalIndex } from "./pdf_find_controller.js";
 
 /**
  * @typedef {Object} PDFPageViewOptions
@@ -1202,9 +1203,9 @@ class PDFPageView {
       : null;
   }
 
-  #addLinkAnnotation(url, index) {
+  #addLinkAnnotation(url, index, length) {
     // TODO refactor out the logic for a single match from this function
-    const convertedMatch = this._textHighlighter._convertMatches([index], [url.length])[0];
+    const convertedMatch = this._textHighlighter._convertMatches([index], [length])[0];
     const range = new Range();
     range.setStart(
       this._textHighlighter.textDivs[convertedMatch.begin.divIdx].firstChild,
@@ -1214,54 +1215,65 @@ class PDFPageView {
       this._textHighlighter.textDivs[convertedMatch.end.divIdx].firstChild,
       convertedMatch.end.offset
     );
-    // const startDiv = this._textHighlighter.textDivs[convertedMatch.begin.divIdx];
-    // const startRect = startDiv.getBoundingClientRect();
-    // const {x, bottom, right, y} = startRect;
-    // this.viewport.rawDims();
+    const pageBox = this.textLayer.div.getBoundingClientRect();
 
-    const { left, bottom, right, top } = range.getBoundingClientRect();
-    const yoffset = this.pdfPage.view[1] + this.pdfPage.view[3];
-    const xoffset = this.pdfPage.view[0] + this.pdfPage.view[2];
-    // const rect = [left, this.pdfPage.view[1] - bottom + this.pdfPage.view[3], right, this.pdfPage.view[1] - top + this.pdfPage.view[3]]
-    const rect = [left, yoffset - bottom, yoffset - top, right];
-    // console.log(startDiv, rect);
-    // const endDiv = this._textHighlighter.textDivs[convertedMatch.end.divIdx];
-    this.#linkAnnotations.push({
-      unsafeUrl: url,
-      url,
-      // FIXME The rect is wrong atm, it should be calculated better
-      rect,
-      // NOTE boilerplate-y
-      annotationType: 2,
-      annotationFlags: 4,
-      subtype: "Link",
-      noHTML: false,
-      isEditable: false,
-      hasApperance: false,
-      modificationDate: null,
-      structParent: 2,
-      // NOTE everything from here on is arbitrary
-      borderStyle: {
-        width: 0,
-        rawWidth: 1,
-        style: 1,
-        dashArray: [
-          3
-        ],
-        horizontalCornerRadius: 0,
-        verticalCornerRadius: 0
-      }
-    });
+    for (const linkBox of range.getClientRects()) {
+      if (linkBox.width === 0 || linkBox.height === 0) continue;
+
+      const bottomLeft = this.getPagePoint(
+        linkBox.left - pageBox.left,
+        linkBox.top - pageBox.top
+      );
+      const topRight = this.getPagePoint(
+        linkBox.left - pageBox.left + linkBox.width,
+        linkBox.top - pageBox.top + linkBox.height
+      );
+
+      const rect = Util.normalizeRect([
+        bottomLeft[0],
+        bottomLeft[1],
+        topRight[0],
+        topRight[1],
+      ]);
+
+      this.#linkAnnotations.push({
+        unsafeUrl: url,
+        url,
+        rect,
+        // NOTE boilerplate-y
+        annotationType: 2,
+        annotationFlags: 4,
+        subtype: "Link",
+        noHTML: false,
+        isEditable: false,
+        hasApperance: false,
+        modificationDate: null,
+        structParent: 2,
+        rotation: 0,
+        // NOTE everything from here on is arbitrary
+        borderStyle: {
+          width: 2,
+          rawWidth: 2,
+          style: 1,
+          dashArray: [3],
+          horizontalCornerRadius: 0,
+          verticalCornerRadius: 0
+        },
+      });
+    }
   }
 
   processLinks() {
     this.pdfPage.getTextContent().then(content => {
-      const text = concatTextContent(content);
+      const [text, diffs] = normalizedTextContent(content);
       const urlRegex = /\b(?:https?:\/\/|mailto:|www.)(?:[[\S--\[]--\p{P}]|\/|[\p{P}--\[]+[[\S--\[]--\p{P}])+/gmv;
       const matches = text.matchAll(urlRegex);
       if (matches) {
         this.#linkAnnotations = [];
-        matches.forEach(match => this.#addLinkAnnotation(match[0], match.index));
+        matches.forEach(match => {
+          const [index, length] = getOriginalIndex(diffs, match.index, match[0].length);
+          this.#addLinkAnnotation(match[0], index, length);
+        });
         // there should be a more efficient way to do this
         this.#renderAnnotationLayer();
       }

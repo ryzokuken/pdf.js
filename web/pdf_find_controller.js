@@ -378,7 +378,7 @@ function getOriginalIndex(diffs, pos, len) {
   return [oldStart, oldLen];
 }
 
-function concatTextContent(textContent) {
+function normalizedTextContent(textContent) {
   const strBuf = [];
 
   for (const textItem of textContent.items) {
@@ -388,7 +388,7 @@ function concatTextContent(textContent) {
     }
   }
 
-  return strBuf.join("");
+  return normalize(strBuf.join(""));
 }
 
 /**
@@ -891,7 +891,7 @@ class PDFFindController {
                 this._pageContents[i],
                 this._pageDiffs[i],
                 this._hasDiacritics[i],
-              ] = normalize(concatTextContent(textContent));
+              ] = normalizedTextContent(textContent);
               resolve();
             },
             reason => {
@@ -1169,4 +1169,9 @@ class PDFFindController {
   }
 }
 
-export { concatTextContent, FindState, PDFFindController };
+export {
+  FindState,
+  getOriginalIndex,
+  normalizedTextContent,
+  PDFFindController,
+};
