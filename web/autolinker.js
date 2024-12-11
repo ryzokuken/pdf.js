@@ -71,7 +71,8 @@ class Autolinker {
   static processLinks(pdfPageView, textContent) {
     const [text, diffs] = normalize(textContent.join(""));
     const matches = text.matchAll(Autolinker.#urlRegex);
-    return Array.from(matches, match => {
+    const links = [];
+    for (const match of matches) {
       const url = createValidAbsoluteUrl(match[0]);
       if (url) {
         const [index, length] = getOriginalIndex(
@@ -79,12 +80,12 @@ class Autolinker {
           match.index,
           match[0].length
         );
-        return this.#addLinkAnnotations(url.href, index, length, pdfPageView);
+        links.push(
+          ...this.#addLinkAnnotations(url.href, index, length, pdfPageView)
+        );
       }
-      return url;
-    })
-      .filter(annotation => annotation !== null)
-      .flat();
+    }
+    return links;
   }
 }
 
