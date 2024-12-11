@@ -68,8 +68,10 @@ class Autolinker {
     return linkAnnotations;
   }
 
-  static processLinks(pdfPageView, textContent) {
-    const [text, diffs] = normalize(textContent.join(""));
+  static processLinks(pdfPageView) {
+    const [text, diffs] = normalize(
+      pdfPageView._textHighlighter.textContentItemsStr.join("")
+    );
     const matches = text.matchAll(Autolinker.#urlRegex);
     const links = [];
     for (const match of matches) {
