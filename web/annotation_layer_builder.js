@@ -25,7 +25,7 @@
 // eslint-disable-next-line max-len
 /** @typedef {import("../src/display/editor/tools.js").AnnotationEditorUIManager} AnnotationEditorUIManager */
 
-import { AnnotationLayer } from "pdfjs-lib";
+import { AnnotationLayer, Util } from "pdfjs-lib";
 import { PresentationModeState } from "./ui_utils.js";
 
 /**
@@ -119,12 +119,19 @@ class AnnotationLayerBuilder {
       return;
     }
 
-    if (annotations.length === 0) {
-      // Because we could end up creating duplicate annotations, avoid injecting
-      // any if there are already annotations in the layer. In the future, this
-      // should be something smarter so we could avoid overlaps.
-      annotations.push(...linkAnnotations);
-    }
+    const uniqueLinks = linkAnnotations.filter(link => {
+      for (const annotation of annotations) {
+        if (
+          annotation.subtype === "Link" &&
+          annotation.url === link.url &&
+          Util.intersect(annotation.rect, link.rect) !== null
+        ) {
+          return false;
+        }
+      }
+      return true;
+    });
+    annotations.push(...uniqueLinks);
 
     // Create an annotation layer div and render the annotations
     // if there is at least one annotation.

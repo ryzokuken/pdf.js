@@ -70,7 +70,7 @@ class Autolinker {
 
   static processLinks(pdfPageView) {
     const [text, diffs] = normalize(
-      pdfPageView._textHighlighter.textContentItemsStr.join("")
+      pdfPageView._textHighlighter.textContentItemsStr.join("\n")
     );
     const matches = text.matchAll(Autolinker.#urlRegex);
     const links = [];
