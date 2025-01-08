@@ -1791,6 +1791,62 @@ class Catalog {
       }
     }
   }
+
+  // Remove the page corresponding to the given page reference from the tree.
+  removePage(pageRef) {
+    // Firstly, fetch the page and check if it's valid.
+    const page = this.xref.fetchIfRef(pageRef);
+    if (!(page instanceof Dict) || !isName(page.get("Type"), "Page")) {
+      throw new Error("Invalid page reference");
+    }
+
+    // Remove the page from various caches.
+    // this.pageKidsCountCache.delete(pageRef);
+    // this.pageDictCache.delete(pageRef);
+    // this.pageIndexCache.delete(pageRef);
+    // TODO: Removing values from RefSetCache is not supported yet.
+
+    // Remove the leaf page node from the parent.
+    const parent = page.get("Parent");
+    const kids = parent.get("Kids").filter(ref => !isRefsEqual(ref, pageRef));
+    parent.set("Kids", kids);
+
+    // Recursively reduce the count until the catalog node.
+    for (
+      let node = parent;
+      node !== this.toplevelPagesDict;
+      node = node.get("Parent")
+    ) {
+      node.set("Count", node.get("Count") - 1);
+    }
+
+    // TODO: Many of the cached values are no longer valid.
+    // We should consider either resetting or "fixing" them, whatever works.
+    // Or, we could recompute the catalog and xrefs at this point from scratch.
+  }
+
+  // Add a new page to the tree.
+  addPage(pageDict) {
+    if (!(pageDict instanceof Dict) || !isName(pageDict.get("Type"), "Page")) {
+      throw new Error("Invalid page dictionary");
+    }
+    const ref = this.xref.getNewPersistentRef(pageDict);
+
+    // Find the parent to insert the new page. For now, this is the first child
+    // of the root node.
+    const parentRef = this.toplevelPagesDict.getRaw("Kids")[0];
+    const parent = this.xref.fetchIfRef(parentRef);
+    pageDict.set("Parent", parentRef);
+    parent.set("Count", parent.getRaw("Count") + 1);
+    parent.set("Kids", [parent.getRaw("Kids"), ref]);
+    this.toplevelPagesDict.set(
+      "Count",
+      this.toplevelPagesDict.getRaw("Count") + 1
+    );
+
+    // We have to solve similar problems to above, given that the viewer will
+    // not be able to handle this operation at runtime just yet.
+  }
 }
 
 export { Catalog };
